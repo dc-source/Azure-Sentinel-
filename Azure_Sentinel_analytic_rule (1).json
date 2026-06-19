@@ -1,0 +1,137 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/3c85497a-8cd6-5f67-b0c2-a60ad2ea83d9')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/3c85497a-8cd6-5f67-b0c2-a60ad2ea83d9')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2023-12-01-preview",
+            "properties": {
+                "displayName": "CrowdStrike FDR - Suspicious encoded PowerShell detection",
+                "description": "Raises an incident when CrowdStrike Falcon (ingested via Logs Ingestion API into CrowdStrikeFDR_CL) reports a suspicious-activity / encoded-PowerShell IOA. Demonstrates analytics rule creation against a custom-format table using the existing API/DCR pipeline.",
+                "severity": "Medium",
+                "enabled": true,
+                "query": "CrowdStrikeFDR_CL\n| where SourceVendors == \"CrowdStrike\"\n// Optional: focus the demo on the encoded-PowerShell IOA, comment out to see all detections\n| where IOARuleName has \"base64\" or DecodedCommand != \"\"\n| extend AccountName = tostring(UserName)\n| extend AccountNTDomain = tostring(LogonDomain)\n| extend HostName = tostring(Hostname)\n| extend ProcessName = tostring(FileName)\n| extend ProcessCmd = tostring(CommandLine)\n| extend SrcIp = tostring(LocalIP)\n| extend FileHashSha256 = tostring(SHA256String)\n| extend FileHashMd5 = tostring(MD5String)\n| extend HashAlgorithm = \"SHA256\"\n| project\n    TimeGenerated, SeverityName, RiskScore, Name, Description,\n    IOARuleName, MitreTechnique, MitreTechniqueId,\n    HostName, AccountName, AccountNTDomain, SrcIp,\n    ProcessName, ProcessCmd, DecodedCommand,\n    ParentImageFileName, ParentCommandLine,\n    GrandParentImageFileName, GrandParentCommandLine,\n    FirstFileWrittenName, FirstFileWrittenPath,\n    FileHashSha256, FileHashMd5, HashAlgorithm,\n    FalconHostLink, CompositeId\n",
+                "queryFrequency": "PT5M",
+                "queryPeriod": "PT1H",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT1H",
+                "suppressionEnabled": false,
+                "startTimeUtc": null,
+                "tactics": [
+                    "Execution",
+                    "DefenseEvasion"
+                ],
+                "techniques": [
+                    "T1059",
+                    "T1027"
+                ],
+                "subTechniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": true,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT1H",
+                        "matchingMethod": "Selected",
+                        "groupByEntities": [
+                            "Host",
+                            "Account"
+                        ],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "AlertPerResult"
+                },
+                "alertDetailsOverride": {
+                    "alertDisplayNameFormat": "CrowdStrike: {{Name}} on {{HostName}} ({{AccountName}})",
+                    "alertDescriptionFormat": "Falcon IOA {{IOARuleName}} fired for user {{AccountName}} on {{HostName}}.",
+                    "alertDynamicProperties": []
+                },
+                "customDetails": {
+                    "IOARule": "IOARuleName",
+                    "FalconRiskScore": "RiskScore",
+                    "FalconLink": "FalconHostLink",
+                    "DecodedCommand": "DecodedCommand"
+                },
+                "entityMappings": [
+                    {
+                        "entityType": "Host",
+                        "fieldMappings": [
+                            {
+                                "identifier": "HostName",
+                                "columnName": "HostName"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "Account",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Name",
+                                "columnName": "AccountName"
+                            },
+                            {
+                                "identifier": "NTDomain",
+                                "columnName": "AccountNTDomain"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "IP",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Address",
+                                "columnName": "SrcIp"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "Process",
+                        "fieldMappings": [
+                            {
+                                "identifier": "CommandLine",
+                                "columnName": "ProcessCmd"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "File",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Name",
+                                "columnName": "ProcessName"
+                            }
+                        ]
+                    },
+                    {
+                        "entityType": "FileHash",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Algorithm",
+                                "columnName": "HashAlgorithm"
+                            },
+                            {
+                                "identifier": "Value",
+                                "columnName": "FileHashSha256"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null,
+                "templateVersion": null
+            }
+        }
+    ]
+}
